@@ -13,7 +13,7 @@ jobs:
         run: rustup target add aarch64-linux-android
 
       - name: Install Android NDK
-        uses: nttld/setup-ndk@v2
+        uses: nttld/setup-ndk@v1
         with:
           ndk-version: r27c
           add-to-path: true
