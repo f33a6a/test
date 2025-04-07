@@ -1,0 +1,13 @@
+[package]
+name = "test"
+version = "0.1.0"
+edition = "2021"
+[dependencies]
+reqwest = { version = "0.11", default-features = false, features = ["rustls-tls"] } # No "json" (smaller binary)
+tokio = { version = "1.0", default-features = false, features = ["rt", "macros"] }
+[profile.release]
+opt-level = "z"        # Optimize for size ("z"), or use "s" for more aggressive size reduction
+lto = true            # Link-Time Optimization (reduces binary size & improves speed)
+codegen-units = 1     # Slower compile but better optimization
+panic = "abort"       # No panic unwinding (smaller binary)
+strip = true         # Automatically strip symbols (reduces binary size)
