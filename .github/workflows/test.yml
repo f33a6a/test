@@ -1,0 +1,67 @@
+name: test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    # Setup Rust toolchain
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: aarch64-linux-android
+    
+    # Install Android NDK
+    - name: Setup Android NDK
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r27c
+        add-to-path: true
+    
+    - name: dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        
+    - name: Install cargo-ndk
+      run: cargo install cargo-ndk
+    
+    - name: Build linked to Android system libs
+      run: |
+        cargo ndk --target aarch64-linux-android --android-platform 26 -- build --release
+        mkdir -p artifacts/shared
+        cp target/aarch64-linux-android/release/test artifacts/shared/
+    
+    - name: Build static binary
+      run: |
+        # Create .cargo/config.toml with static linking flags
+        mkdir -p .cargo
+        echo '[target.aarch64-linux-android]' > .cargo/config.toml
+        echo 'rustflags = ["-C", "target-feature=+crt-static"]' >> .cargo/config.toml
+        
+        # Build with static linking
+        cargo ndk --target aarch64-linux-android --android-platform 26 -- build --release
+        
+        # Store binary in artifacts
+        mkdir -p artifacts/static
+        cp target/aarch64-linux-android/release/test artifacts/static/test-static
+    
+    # Upload both binaries as artifacts
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: android-aarch64-binaries
+        path: artifacts/
